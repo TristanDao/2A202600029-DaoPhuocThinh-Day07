@@ -39,24 +39,33 @@ class EmbeddingStore:
             if qdrant_url:
                 # Connect to Qdrant Cloud or remote server
                 self._client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key)
+                # Verify connection by calling a simple method
+                self._client.get_collections()
+                print(f"[EmbeddingStore] SUCCESS: Connected to QDRANT CLOUD at {qdrant_url}")
             else:
                 # Fallback to local in-memory
                 self._client = QdrantClient(location=":memory:")
+                print("[EmbeddingStore] INFO: Using IN-MEMORY storage (:memory:). Set QDRANT_URL in .env for Cloud.")
             
             # Check if collection exists to avoid deleting cloud data on every run
             collections = self._client.get_collections().collections
             collection_names = [c.name for c in collections]
 
             if self._collection_name not in collection_names:
+                print(f"[EmbeddingStore] Creating new collection: '{self._collection_name}'")
                 dummy_vec = self._embedding_fn("test")
                 dim = len(dummy_vec)
                 self._client.recreate_collection(
                     collection_name=self._collection_name,
                     vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
                 )
+            else:
+                print(f"[EmbeddingStore] Using existing collection: '{self._collection_name}'")
             
             self._use_qdrant = True
-        except Exception:
+        except Exception as e:
+            print(f"[EmbeddingStore] ERROR matching Qdrant: {e}")
+            print("[EmbeddingStore] FALLBACK: Switching to in-memory list storage.")
             self._use_qdrant = False
             self._client = None
 
