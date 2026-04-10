@@ -121,18 +121,18 @@ class EmbeddingStore:
     def search(self, query: str, top_k: int = 5) -> list[dict[str, Any]]:
         """Find the top_k most similar documents to query."""
         if self._use_qdrant:
-            results = self._client.search(
+            results = self._client.query_points(
                 collection_name=self._collection_name,
-                query_vector=self._embedding_fn(query),
+                query=self._embedding_fn(query),
                 limit=top_k
-            )
+            ).points
             return [
                 {
-                    "content": res.payload["content"],
-                    "metadata": res.payload["metadata"],
-                    "score": res.score
+                    "content": point.payload["content"],
+                    "metadata": point.payload["metadata"],
+                    "score": point.score
                 }
-                for res in results
+                for point in results
             ]
         else:
             return self._search_records(query, self._store, top_k)
@@ -156,19 +156,19 @@ class EmbeddingStore:
                     must.append(FieldCondition(key=f"metadata.{key}", match=MatchValue(value=value)))
                 q_filter = Filter(must=must)
             
-            results = self._client.search(
+            results = self._client.query_points(
                 collection_name=self._collection_name,
-                query_vector=self._embedding_fn(query),
+                query=self._embedding_fn(query),
                 query_filter=q_filter,
                 limit=top_k
-            )
+            ).points
             return [
                 {
-                    "content": res.payload["content"],
-                    "metadata": res.payload["metadata"],
-                    "score": res.score
+                    "content": point.payload["content"],
+                    "metadata": point.payload["metadata"],
+                    "score": point.score
                 }
-                for res in results
+                for point in results
             ]
         else:
             filtered_records = self._store
