@@ -1,5 +1,6 @@
 pytest>=7.0
 python-dotenv>=1.0
+requests>=2.31.0
 
 # Optional manual-demo extras
 # Install local embedder support with:
@@ -12,4 +13,5 @@ python-dotenv>=1.0
 # openai>=1.0
 
 # Optional: for bonus tasks
-# chromadb>=0.4.0      # Real vector database integration
+qdrant-client>=1.7.0  # Vector database integration
+# chromadb>=0.4.0      # Original vector database integration
