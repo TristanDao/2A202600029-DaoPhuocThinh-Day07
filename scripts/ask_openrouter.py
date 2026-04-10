@@ -55,28 +55,69 @@ def run_debug_query(question: str, collection_name: str = "bvi_knowledge_base"):
     embedder = LocalEmbedder()
     store = EmbeddingStore(collection_name=collection_name, embedding_fn=embedder)
     
-    # 2. Setup Agent
+    # 2. Step 1: Manual Search to show Top Results first
+    top_k = 3
+    print(f"[DEBUG] Searching for Top-{top_k} candidates in DB...")
+    results = store.search(question, top_k=top_k)
+    
+    print("\n" + "-"*50)
+    print(f"RETRIEVED CONTEXT (TOP {len(results)} RESULTS)")
+    print("-"*50)
+    if not results:
+        print("!!! NO RESULTS FOUND IN DATABASE !!!")
+    for i, res in enumerate(results, 1):
+        score = res.get('score', 0.0)
+        source = res.get('metadata', {}).get('source', 'Unknown')
+        content_preview = res.get('content', '')[:300].replace('\n', ' ')
+        
+        print(f"[{i}] SCORE: {score:.4f}  |  SOURCE: {source}")
+        print(f"    CONTENT: {content_preview}...")
+        print("-" * 30)
+    print("="*50 + "\n")
+
+    # 3. Step 2: Call Agent for Final Answer
     # We pass our OpenRouter call function as the LLM provider
     agent = KnowledgeBaseAgent(store=store, llm_fn=call_openrouter_api)
     
-    # 3. Get Answer
-    print("[DEBUG] Searching DB and generating answer...")
-    answer = agent.answer(question, top_k=3)
+    print("[DEBUG] Generating final answer using OpenRouter...")
+    answer = agent.answer(question, top_k=top_k)
     
-    print("\n" + "="*50)
-    print("FINAL ANSWER")
-    print("="*50)
+    print("\n" + "█"*50)
+    print("AI RESPONSE")
+    print("█"*50)
     print(answer)
-    print("="*50 + "\n")
+    print("█"*50 + "\n")
     
     return answer
 
 if __name__ == "__main__":
-    # Check if a question was passed as argument
+    load_dotenv()
+    
+    # Check if a question was passed as argument for single-shot mode
     if len(sys.argv) > 1:
         query = " ".join(sys.argv[1:])
+        run_debug_query(query)
     else:
-        # Default test question
-        query = "Hệ thống R-Evo Smart S có ưu điểm gì nổi bật?"
+        # INTERACTIVE CHAT MODE
+        print("\n" + "╔" + "═"*50 + "╗")
+        print("║" + " "*13 + "BVI RAG CHAT SYSTEM ACTIVE" + " "*11 + "║")
+        print("╚" + "═"*50 + "╝")
+        print("Gõ 'exit', 'quit' hoặc 'q' để thoát chương trình.")
         
-    run_debug_query(query)
+        while True:
+            try:
+                user_input = input("\nBạn muốn hỏi gì?: ").strip()
+                
+                if user_input.lower() in ['exit', 'quit', 'q']:
+                    print("Tạm biệt!")
+                    break
+                
+                if not user_input:
+                    continue
+                
+                run_debug_query(user_input)
+            except KeyboardInterrupt:
+                print("\nĐã dừng chương trình. Tạm biệt!")
+                break
+            except Exception as e:
+                print(f"Lỗi hệ thống: {e}")

@@ -59,8 +59,14 @@ class EmbeddingStore:
                     collection_name=self._collection_name,
                     vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
                 )
-            else:
-                print(f"[EmbeddingStore] Using existing collection: '{self._collection_name}'")
+            
+            # Ensure metadata.doc_id is indexed for efficient and mandatory filtering on Qdrant Cloud
+            from qdrant_client.http.models import PayloadSchemaType
+            self._client.create_payload_index(
+                collection_name=self._collection_name,
+                field_name="metadata.doc_id",
+                field_schema=PayloadSchemaType.KEYWORD,
+            )
             
             self._use_qdrant = True
         except Exception as e:
