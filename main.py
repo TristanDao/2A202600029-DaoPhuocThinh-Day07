@@ -30,28 +30,50 @@ SAMPLE_FILES = [
 
 def load_documents_from_files(file_paths: list[str]) -> list[Document]:
     """Load documents from file paths for the manual demo."""
-    allowed_extensions = {".md", ".txt"}
+    import json
+    allowed_extensions = {".md", ".txt", ".jsonl"}
     documents: list[Document] = []
 
     for raw_path in file_paths:
         path = Path(raw_path)
 
         if path.suffix.lower() not in allowed_extensions:
-            print(f"Skipping unsupported file type: {path} (allowed: .md, .txt)")
+            print(f"Skipping unsupported file type: {path} (allowed: .md, .txt, .jsonl)")
             continue
 
         if not path.exists() or not path.is_file():
             print(f"Skipping missing file: {path}")
             continue
 
-        content = path.read_text(encoding="utf-8")
-        documents.append(
-            Document(
-                id=path.stem,
-                content=content,
-                metadata={"source": str(path), "extension": path.suffix.lower()},
+        if path.suffix.lower() == ".jsonl":
+            count = 0
+            with open(path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if count >= 100:  # Limit for demo purposes
+                        break
+                    data = json.loads(line)
+                    doc_id = str(data.get("_id", count))
+                    title = data.get("title", "")
+                    text = data.get("text", "")
+                    content = f"{title}. {text}" if title else text
+                    documents.append(
+                        Document(
+                            id=doc_id,
+                            content=content,
+                            metadata={"source": str(path), "extension": ".jsonl"},
+                        )
+                    )
+                    count += 1
+            print(f"Loaded {count} documents from {path}")
+        else:
+            content = path.read_text(encoding="utf-8")
+            documents.append(
+                Document(
+                    id=path.stem,
+                    content=content,
+                    metadata={"source": str(path), "extension": path.suffix.lower()},
+                )
             )
-        )
 
     return documents
 
@@ -121,6 +143,12 @@ def run_manual_demo(question: str | None = None, sample_files: list[str] | None 
 
 def main() -> int:
     question = " ".join(sys.argv[1:]).strip() if len(sys.argv) > 1 else None
+    
+    # Check if scifact exists
+    scifact_corpus = "datasets/scifact/corpus.jsonl"
+    if Path(scifact_corpus).exists():
+        return run_manual_demo(question=question, sample_files=[scifact_corpus])
+        
     return run_manual_demo(question=question)
 
 

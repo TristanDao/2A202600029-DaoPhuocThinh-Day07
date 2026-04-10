@@ -1,0 +1,7 @@
+  The callable will be invoked immediately upon subscription
+            and again for every change to ChannelConnectivity until it
+            is unsubscribed or this Channel object goes out of scope.
+          try_to_connect: A boolean indicating whether or not this Channel
+            should attempt to connect immediately. If set to False, gRPC
+            runtime decides when to connect.
+     
